@@ -40,20 +40,69 @@ class DPLL:
 
     def unit_propogation(self):
         unit_clauses = [clause for clause in self.clauses if len(clause) == 1]
-        # if unit_clauses:
-        #     unit_clause = unit_clauses[0]
-        #     literal = unit_clause[0]
-        print(unit_clauses)
+        if unit_clauses:
+            for unit_clause in unit_clauses:
+                literal = unit_clause[0]
+                self.decide_up(literal)
+        else:
+            return
+        # print(unit_clauses)
         pass
+
+    def pure_literal_elim(self):
+        for i in range(-self.no_variables, self.no_variables + 1):
+            prevEncountered = False
+            if i == 0:
+                continue
+            for clause in self.clauses:
+                if i in clause:
+                    if -i in clause:
+                        self.clauses.remove(clause)
+                    else:
+                        prevEncountered = True
+                if -i in clause:
+                    break
+                if clause == self.clauses[-1] and prevEncountered:
+                    self.decide_ple(i)
+                    print("lavde"+str(i))
+                    return
+
+    def decide_up(self, literal):
+        self.assignments[literal] = True
+        self.clauses.remove([literal])
+        for clause in self.clauses:
+            if clause.count(literal) > 0:
+                self.clauses.remove(clause)
+            elif clause.count(-literal) > 0:
+                self.clauses.remove(clause)
+                clause.remove(-literal)
+                self.clauses.append(clause)
+            else:
+                continue
+
+    def decide_ple(self, literal):
+        self.assignments[literal] = True
+        delete_clause = []
+        for clause in self.clauses:
+            if clause.count(literal) > 0:
+                delete_clause.append(clause)
+        for item in delete_clause:
+            self.clauses.remove(item)
+
     def solve(self):
-        
+        self.unit_propogation()
+        self.pure_literal_elim()
+
 
 def main():
     # extract_clauses(file='test.txt')
-    DPLL1 = DPLL(formula=extract_clauses(file='test.txt')[0],no_clauses=extract_clauses(file='test.txt')[2],no_variables=extract_clauses(file='test.txt')[1])
-    DPLL1.print_all()
-    DPLL1.unit_propogation()
+    DPLL1 = DPLL(
+        formula=extract_clauses(file='test.txt')[0],
+        no_clauses=extract_clauses(file='test.txt')[2],
+        no_variables=extract_clauses(file='test.txt')[1])
 
+    DPLL1.solve()
+    DPLL1.print_all()
 
 
 if __name__ == '__main__':
