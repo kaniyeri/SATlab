@@ -3,9 +3,9 @@ class CDCL:
         self.formula = formula
         self.assignments = {}
         self.clauses = []
-        self.no_variables = self.no_variables
-        self.no_clauses = self.no_clauses
-        
+        self.no_variables = no_variables
+        self.no_clauses = no_clauses
+
         for clause in formula:
             self.clauses.append(set(clause))
 
