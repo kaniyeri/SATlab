@@ -5,7 +5,9 @@
 -3,-4,0
 This is the format for clauses.
 '''
+# import numba
 
+import time
 
 def extract_clauses(file):
     """Extract the clauses from the file. First line is the number of variables and number of clauses."""
@@ -64,7 +66,23 @@ class DPLL:
                     break
                 if clause == self.clauses[-1] and prevEncountered:
                     self.decide_ple(i)
-                    print("lavde"+str(i))
+                    print("anmol"+str(i))
+                    return
+    def pure_literal_elim_with_index(self,i):
+            prevEncountered = False
+            if i == 0:
+                continue
+            for clause in self.clauses:
+                if i in clause:
+                    if -i in clause:
+                        self.clauses.remove(clause)
+                    else:
+                        prevEncountered = True
+                if -i in clause:
+                    break
+                if clause == self.clauses[-1] and prevEncountered:
+                    self.decide_ple(i)
+                    print("anmol"+str(i))
                     return
 
     def decide_up(self, literal):
@@ -90,8 +108,17 @@ class DPLL:
             self.clauses.remove(item)
 
     def solve(self):
-        self.unit_propogation()
-        self.pure_literal_elim()
+        while True:
+            self.unit_propogation()
+            self.pure_literal_elim()
+            if len(self.clauses) == 0:
+                print("SAT")
+                return
+            if len(self.clauses) == 1 and len(self.clauses[0]) == 0:
+                print("UNSAT")
+                return
+        # self.unit_propogation()
+        # self.pure_literal_elim()
 
 
 def main():
@@ -101,7 +128,11 @@ def main():
         no_clauses=extract_clauses(file='test.txt')[2],
         no_variables=extract_clauses(file='test.txt')[1])
 
+    # measure time taken for DPLL.solve()
+    t1 = time.perf_counter()
     DPLL1.solve()
+    t2 = time.perf_counter()
+    print(f"Time taken for DPLL.solve(): {t2 - t1:0.4f} seconds")
     DPLL1.print_all()
 
 
