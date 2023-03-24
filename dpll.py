@@ -119,6 +119,17 @@ class DPLL:
                 return
         # self.unit_propogation()
         # self.pure_literal_elim()
+    def do_unit_prop_until_done(self):
+        unit_clauses = [clause for clause in self.clauses if len(clause) == 1]
+        while True:
+            if unit_clauses:
+                for unit_clause in unit_clauses:
+                    literal = unit_clause[0]
+                    self.decide_up(literal)
+                    unit_clauses.remove(unit_clause)
+            else:
+                return
+                        
 
 
 def main():
