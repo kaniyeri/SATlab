@@ -66,12 +66,12 @@ class DPLL:
                     break
                 if clause == self.clauses[-1] and prevEncountered:
                     self.decide_ple(i)
-                    print("anmol"+str(i))
+                    # print("anmol"+str(i))
                     return
     def pure_literal_elim_with_index(self,i):
             prevEncountered = False
             if i == 0:
-                continue
+                return
             for clause in self.clauses:
                 if i in clause:
                     if -i in clause:
