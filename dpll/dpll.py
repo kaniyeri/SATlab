@@ -22,10 +22,12 @@ class DPLL:
         for clause in formula:
             self.clauses.append(clause)
 
-        for i in range(-self.no_vars, self.no_vars+1):
-            if i == 0:
-                continue
-            self.unassigned.append(i)
+        for i in range(1,self.no_vars+1):
+            for clause in self.clauses:
+                if (i in clause) or (-i in clause):
+                    self.unassigned.append(i)
+                    self.unassigned.append(-i)
+                    break
 
     def unit_literal(self):
         for clause in self.clauses:
@@ -68,7 +70,10 @@ class DPLL:
     def pure_prop(self, literal):
         self.assignments[literal] = True
         self.unassigned.remove(literal)
-        self.unassigned.remove(-literal)
+        for clause in self.clauses:
+            if -literal in clause:
+                self.unassigned.remove(-literal)
+                break
         for clause in self.clauses:
             if literal in clause:
                 self.clauses.remove(clause)
@@ -79,12 +84,20 @@ class DPLL:
             if literal in clause:
                 continue
             elif -literal in clause:
-                clause.remove(-literal)
-            new_clauses.append(clause)
+                temp = clause.copy()
+                temp.remove(-literal)
+                new_clauses.append(temp)
+                del temp
+            else:
+                new_clauses.append(clause)
         
-        return DPLL(formula=new_clauses, no_clauses=len(new_clauses), no_vars=len(self.unassigned)//2)
+        return DPLL(formula=new_clauses, no_clauses=len(new_clauses), no_vars=self.no_vars)
 
-    def add_assignments(self, new_assignments):
+    def add_assignments(self, new_assignments, literal):
+        self.assignments[literal] = True
+        self.unassigned.remove(literal)
+        self.unassigned.remove(-literal)
+
         for assign in new_assignments:
             self.assignments[assign] = True
             self.unassigned.remove(assign)
@@ -100,15 +113,19 @@ class DPLL:
 
     def DPLL_procedure(self):
         unit_literal = self.unit_literal()
+        # print('unit', unit_literal)
         while(unit_literal):
             self.unit_prop(unit_literal)
             unit_literal = self.unit_literal()
+            # print('unit', unit_literal)
         self.print()
 
         pure_literal = self.pure_literal()
+        # print('pure', pure_literal)
         while(pure_literal):
             self.pure_prop(pure_literal)
             pure_literal = self.pure_literal()
+            # print('pure', pure_literal)
         self.print()
 
         if len(self.clauses) == 0:
@@ -117,15 +134,16 @@ class DPLL:
             return False
         
         literal = self.unassigned[0]
+        print(literal)
         DPLL_and_literal = self.DPLL_and_literal(literal)
         DPLL_and_not_literal = self.DPLL_and_literal(-literal)
 
         andresult = DPLL_and_literal.DPLL_procedure()
         andnotresult = DPLL_and_not_literal.DPLL_procedure()
         if andresult:
-            self.add_assignments(list(DPLL_and_literal.assignments.keys()))
+            self.add_assignments(list(DPLL_and_literal.assignments.keys()), literal)
         elif andnotresult:
-            self.add_assignments(list(DPLL_and_not_literal.assignments.keys()))
+            self.add_assignments(list(DPLL_and_not_literal.assignments.keys()), -literal)
         return andresult or andnotresult
 
     def print(self):
@@ -135,7 +153,7 @@ class DPLL:
         print('---------------------------------------------------')
 
 
-formula, no_vars, no_clauses = extract_clauses('../test.txt')
+formula, no_vars, no_clauses = extract_clauses('../test3.txt')
 dpll1 = DPLL(formula=formula, no_vars=no_vars, no_clauses=no_clauses)
 dpll1.print()
 print(dpll1.DPLL_procedure())
