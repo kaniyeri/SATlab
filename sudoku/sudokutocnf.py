@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import sys
-D = 3    # Subgrid dimension
+D = 3   # Subgrid dimension
 N = D*D  # Grid dimension
 if __name__ == '__main__':
     # Read the clues from the file given as the first argument

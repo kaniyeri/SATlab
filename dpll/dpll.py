@@ -3,10 +3,12 @@ def extract_clauses(file):
     clauses = []
     with open(file) as f:
         for line in f:
-            clause = line.split(',')
-            clause = [int(x) for x in clause]
+            clause = line.split()
+            if 'p' in clause:
+                no_vars, no_clauses = int(clause[2]), int(clause[3])
+                continue
+            clause = [int(x) for x in clause[:-1]]
             clauses.append(clause)
-        no_vars, no_clauses = clauses.pop(0)
         # print(clauses)
     return clauses, no_vars, no_clauses
 
@@ -95,10 +97,6 @@ class DPLL:
         return DPLL(formula=new_clauses, no_clauses=len(new_clauses), no_vars=self.no_vars)
 
     def add_assignments(self, new_assignments, literal):
-        self.assignments[literal] = True
-        self.unassigned.remove(literal)
-        self.unassigned.remove(-literal)
-
         for assign in new_assignments:
             self.assignments[assign] = True
             self.unassigned.remove(assign)
@@ -119,13 +117,11 @@ class DPLL:
         while(unit_literal):
             self.unit_prop(unit_literal)
             unit_literal = self.unit_literal()
-        self.print()
 
         pure_literal = self.pure_literal()
         while(pure_literal):
             self.pure_prop(pure_literal)
             pure_literal = self.pure_literal()
-        self.print()
 
         if len(self.clauses) == 0:
             return True
@@ -133,14 +129,20 @@ class DPLL:
             return False
         
         literal = self.unassigned[0]
-        DPLL_and_literal = self.DPLL_and_literal(literal)
-        DPLL_and_not_literal = self.DPLL_and_literal(-literal)
+        clauses = self.clauses.copy()
+        clauses.append([literal])
+        DPLL_and_literal = DPLL(formula=clauses, no_clauses=self.no_clauses, no_vars=self.no_vars)
+        clauses.remove([literal])
+        clauses.append([-literal])
+        DPLL_and_not_literal = DPLL(formula=clauses, no_clauses=self.no_clauses, no_vars=self.no_vars)
+        del clauses 
 
         andresult = bool(DPLL_and_literal.DPLL_procedure())
-        andnotresult = bool(DPLL_and_not_literal.DPLL_procedure())
         if andresult:
             self.add_assignments(list(DPLL_and_literal.assignments.keys()), literal)
-        elif andnotresult:
+        
+        andnotresult = bool(DPLL_and_not_literal.DPLL_procedure())
+        if (andnotresult and (not andresult)):
             self.add_assignments(list(DPLL_and_not_literal.assignments.keys()), -literal)
         return (andresult or andnotresult)
 
@@ -150,11 +152,10 @@ class DPLL:
         print('---------------------------------------------------')
 
 
-formula, no_vars, no_clauses = extract_clauses('../test.txt')
+formula, no_vars, no_clauses = extract_clauses('/home/nx6xe23/github-repos/SATlab/test3.txt')
 dpll1 = DPLL(formula=formula, no_vars=no_vars, no_clauses=no_clauses)
 print(dpll1.DPLL_procedure())
 assignments = list(dpll1.assignments.keys())
-dpll1.print()
 sat_solved = []
 for i in range(1, no_vars+1):
     if i in assignments:
