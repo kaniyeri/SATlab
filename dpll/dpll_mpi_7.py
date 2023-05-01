@@ -1,4 +1,5 @@
-import time
+from mpi4py import MPI
+import time 
 
 def extract_clauses(file):
     """Extract the clauses from the file. First line is the number of variables and number of clauses."""
@@ -140,17 +141,94 @@ class DPLL:
         print('---------------------------------------------------')
 
 
-formula, no_vars, no_clauses = extract_clauses('/home/nx6xe23/github-repos/SATlab/test2.txt')
-dpll1 = DPLL(formula=formula, no_vars=no_vars, no_clauses=no_clauses)
-start = time.time()
-print(dpll1.DPLL_procedure())
-assignments = list(dpll1.assignments.keys())
-print(time.time() - start)
-sat_solved = []
-for i in range(1, no_vars+1):
-    if i in assignments:
-        sat_solved.append(i)
-    elif -i in assignments:
-        sat_solved.append(-i)
+def parent_cell(dpll1, rank1, rank2, comm):
+    unit_literal = dpll1.unit_literal()
+    while(unit_literal):
+        dpll1.unit_prop(unit_literal)
+        unit_literal = dpll1.unit_literal()
 
-print(sat_solved)
+    pure_literal = dpll1.pure_literal()
+    while(pure_literal):
+        dpll1.pure_prop(pure_literal)
+        pure_literal = dpll1.pure_literal()        
+
+    if len(dpll1.clauses) == 0:
+        if comm.rank == 0:
+            assignments = list(dpll1.assignments.keys())
+            sat_solved = []
+            for i in range(1, dpll1.no_vars+1):
+                if i in assignments:
+                    sat_solved.append(i)
+                elif -i in assignments:
+                    sat_solved.append(-i)
+            print(sat_solved)
+    elif [] in dpll1.clauses:
+        print('', end = '')
+    else:
+        literal = dpll1.unassigned[0]
+        clauses = dpll1.clauses.copy()
+        clauses.append([literal])
+        comm.send({'clauses':clauses, 'no_vars':dpll1.no_vars, 'no_clauses':dpll1.no_clauses}, dest = rank1)
+        clauses.append([-literal])
+        clauses.remove([literal])
+        comm.send({'clauses':clauses, 'no_vars':dpll1.no_vars, 'no_clauses':dpll1.no_clauses}, dest = rank2)
+        del clauses
+
+        result1 = comm.recv(source = rank1)
+        result2 = comm.recv(source = rank2)
+
+        if result1:
+            assignments1 = comm.recv(source = 1)
+        if result2:
+            assignments2 = comm.recv(source = 2)
+
+        if result1:
+            dpll1.add_assignments(assignments1, literal)
+        if result2 and (not(result1)):
+            dpll1.add_assignments(assignments2, -literal)
+        if comm.rank == 0:
+            assignments = list(dpll1.assignments.keys())
+            sat_solved = []
+            for i in range(1, dpll1.no_vars+1):
+                if i in assignments:
+                    sat_solved.append(i)
+                elif -i in assignments:
+                    sat_solved.append(-i)
+            print(sat_solved)
+
+def main():
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    if rank == 0:
+        formula, no_vars, no_clauses = extract_clauses('/home/nx6xe23/github-repos/SATlab/test.txt')
+        dpll1 = DPLL(formula=formula, no_vars=no_vars, no_clauses=no_clauses)
+        start = time.time()
+        parent_cell(dpll1, 1, 2, comm)
+        print(time.time()-start)
+        time.sleep(2)
+        
+    elif rank == 1 or rank == 2:
+        dict1 = comm.recv(source = 0)
+        dpll_sub = DPLL(formula=dict1['clauses'], no_vars=dict1['no_vars'], no_clauses=dict1['no_clauses'])
+        parent_cell(dpll_sub, rank*2+1, rank*2+2, comm)
+        if [] in dpll_sub.clauses:
+            comm.send(False, dest = 0)
+        else:
+            comm.send(True, dest = 0)
+            comm.send(list(dpll_sub.assignments.keys()), dest = 0)
+    
+    else:
+        dict1 = comm.recv(source = (rank-1)//2)
+        dpll_sub = DPLL(formula=dict1['clauses'], no_vars=dict1['no_vars'], no_clauses=dict1['no_clauses'])
+        result = dpll_sub.DPLL_procedure()
+        assignments = list(dpll_sub.assignments.keys())
+
+        comm.send(result, dest = (rank-1)//2)
+
+        if result:
+            comm.send(assignments, dest = (rank-1)//2)
+
+
+if __name__ == '__main__':
+    main()

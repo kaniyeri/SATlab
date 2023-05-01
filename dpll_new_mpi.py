@@ -1,5 +1,6 @@
 import random
 import time
+from mpi4py import MPI
 
 class DPLL:
     def __init__(self, n_vars, n_clauses):
@@ -83,9 +84,41 @@ def backtracking(formula):
         solution = backtracking(new_formula)
     return solution
 
+def main():
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
 
-formula = cnf_formula('test.txt')
-start = time.time()
-solution = backtracking(formula)
-print(time.time() - start)
-print(solution)
+    if rank == 0:
+        formula = cnf_formula('test.txt')
+        
+        formula = unit_prop(formula)
+        if formula.has_contradiction:
+            return None
+        if formula.is_empty:
+            return formula.assignments
+        
+        variable = choose_literal(formula)
+        comm.send({"formula":formula, "var":variable}, dest = 1)
+        comm.send({"formula":formula, "var":-variable}, dest = 2)
+
+        solution1 = comm.recv(source = 1)
+        solution2 = comm.recv(source = 2)
+
+        if solution1:
+            return solution1
+        elif solution2:
+            return solution2
+        else:
+            return []
+    
+    else:
+        dict1 = comm.recv(source = 0)
+        new_formula = bool_const_prop(dict1["formula"], dict1["var"])
+        new_formula.assignments.append(dict1["var"])
+        solution = backtracking(new_formula)
+
+        comm.send(solution, dest = 0)
+
+if __name__ == '__main__':
+    solution = main()
+    print(solution)

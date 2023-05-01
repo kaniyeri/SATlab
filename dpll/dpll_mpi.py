@@ -146,7 +146,7 @@ def main():
     rank = comm.Get_rank()
 
     if rank == 0:
-        formula, no_vars, no_clauses = extract_clauses('/home/nx6xe23/github-repos/SATlab/test4.txt')
+        formula, no_vars, no_clauses = extract_clauses('/home/nx6xe23/github-repos/SATlab/test5.txt')
         dpll1 = DPLL(formula=formula, no_vars=no_vars, no_clauses=no_clauses)
         start = time.time()
         unit_literal = dpll1.unit_literal()
