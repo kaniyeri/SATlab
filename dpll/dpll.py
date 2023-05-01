@@ -1,3 +1,5 @@
+import time
+
 def extract_clauses(file):
     """Extract the clauses from the file. First line is the number of variables and number of clauses."""
     clauses = []
@@ -80,21 +82,7 @@ class DPLL:
             if literal in clause:
                 self.clauses.remove(clause)
         del clasues
-            
-    def DPLL_and_literal(self, literal):
-        new_clauses = []
-        for clause in self.clauses:
-            if literal in clause:
-                continue
-            elif -literal in clause:
-                temp = clause.copy()
-                temp.remove(-literal)
-                new_clauses.append(temp)
-                del temp
-            else:
-                new_clauses.append(clause)
-        
-        return DPLL(formula=new_clauses, no_clauses=len(new_clauses), no_vars=self.no_vars)
+
 
     def add_assignments(self, new_assignments, literal):
         for assign in new_assignments:
@@ -152,10 +140,12 @@ class DPLL:
         print('---------------------------------------------------')
 
 
-formula, no_vars, no_clauses = extract_clauses('/home/nx6xe23/github-repos/SATlab/test3.txt')
+formula, no_vars, no_clauses = extract_clauses('/home/nx6xe23/github-repos/SATlab/test4.txt')
 dpll1 = DPLL(formula=formula, no_vars=no_vars, no_clauses=no_clauses)
+start = time.time()
 print(dpll1.DPLL_procedure())
 assignments = list(dpll1.assignments.keys())
+print(time.time() - start)
 sat_solved = []
 for i in range(1, no_vars+1):
     if i in assignments:

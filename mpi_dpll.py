@@ -6,10 +6,12 @@ def extract_clauses(file):
     clauses = []
     with open(file) as f:
         for line in f:
-            clause = line.split(',')
-            clause = [int(x) for x in clause]
+            clause = line.split()
+            if 'p' in clause:
+                no_vars, no_clauses = int(clause[2]), int(clause[3])
+                continue
+            clause = [int(x) for x in clause[:-1]]
             clauses.append(clause)
-        no_vars, no_clauses = clauses.pop(0)
         # print(clauses)
     return clauses, no_vars, no_clauses
 
@@ -82,9 +84,9 @@ def main():
     size = comm.Get_size()
 
     DPLL_Parallel1 = DPLL_Parallel(
-        clauses=extract_clauses(file='test.txt')[0],
-        no_variables=extract_clauses(file='test.txt')[1],
-        no_clauses=extract_clauses(file='test.txt')[2]
+        clauses=extract_clauses(file='test4.txt')[0],
+        no_variables=extract_clauses(file='test4.txt')[1],
+        no_clauses=extract_clauses(file='test4.txt')[2]
     )
 
     if rank == 0:
